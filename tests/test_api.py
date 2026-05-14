@@ -1,0 +1,66 @@
+import fakeredis
+import pytest
+
+from app import create_app
+from app import redis_client
+
+
+class TestConfig:
+    TESTING = True
+    API_TOKEN = "test-token"
+    REDIS_URL = "redis://unused/0"
+    JSON_SORT_KEYS = False
+
+
+@pytest.fixture()
+def client(monkeypatch):
+    fake = fakeredis.FakeRedis(decode_responses=True)
+    app = create_app(TestConfig)
+
+    def fake_get_redis():
+        return fake
+
+    monkeypatch.setattr(redis_client, "get_redis", fake_get_redis)
+    # routes imported the function directly, so patch that reference too.
+    import app.api.routes as routes
+
+    monkeypatch.setattr(routes, "get_redis", fake_get_redis)
+
+    with app.test_client() as test_client:
+        yield test_client
+
+
+def test_add_and_search_favicon(client):
+    payload = {
+        "host": "Example.Org",
+        "url": "https://example.org/favicon.ico",
+        "hashes": {
+            "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "md5": "abc",
+            "sha1": "def",
+            "mmh3": "-123456789",
+        },
+        "metadata": {"size": 123, "content_type": "image/x-icon"},
+        "tags": ["seed"],
+    }
+    response = client.post(
+        "/api/v1/favicons",
+        json=payload,
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert response.status_code == 201
+    assert response.json["hosts"] == ["example.org"]
+    assert response.json["urls"] == ["https://example.org/favicon.ico"]
+
+    by_hash = client.get("/api/v1/search?algo=murmur3&value=-123456789")
+    assert by_hash.status_code == 200
+    assert by_hash.json["count"] == 1
+
+    by_host = client.get("/api/v1/search?host=example.org")
+    assert by_host.status_code == 200
+    assert by_host.json["count"] == 1
+
+
+def test_write_requires_token(client):
+    response = client.post("/api/v1/favicons", json={})
+    assert response.status_code == 401

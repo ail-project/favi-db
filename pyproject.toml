@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "favi-db"
+version = "0.1.0"
+description = "Flask API and companion tool to index favicon metadata and hashes in a Redis-compatible backend."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-2-Clause" }
+authors = [{ name = "Your Team" }]
+dependencies = [
+    "Flask>=3.0,<4",
+    "redis>=5.0",
+    "mmh3>=4.1",
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "fakeredis>=2.23",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+favicon-fetch = "tools.favicon_fetch:main"
+
+[tool.setuptools.packages.find]
+include = ["app*", "tools*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
