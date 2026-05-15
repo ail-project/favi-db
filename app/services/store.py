@@ -115,8 +115,18 @@ class FaviconStore:
             pipe.sadd(f"idx:ip:{host_ip}", sha256)
         pipe.sadd(f"idx:url:{url_key(url)}", sha256)
         pipe.set(f"url:{url_key(url)}", url)
-        pipe.lpush(f"favicon:{sha256}:observations", json.dumps(observation, sort_keys=True))
-        pipe.ltrim(f"favicon:{sha256}:observations", 0, 99)
+        observations_key = f"favicon:{sha256}:observations"
+        latest_observation_raw = self.redis.lindex(observations_key, 0)
+        latest_observation = json.loads(latest_observation_raw) if latest_observation_raw else None
+        should_append_observation = not (
+            latest_observation
+            and latest_observation.get("host") == observation["host"]
+            and latest_observation.get("url") == observation["url"]
+        )
+
+        if should_append_observation:
+            pipe.lpush(observations_key, json.dumps(observation, sort_keys=True))
+            pipe.ltrim(observations_key, 0, 99)
 
         for algo, value in record["hashes"].items():
             if value is None or value == "":

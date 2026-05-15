@@ -103,6 +103,41 @@ def test_write_requires_token(client):
     assert response.status_code == 401
 
 
+def test_duplicate_upsert_updates_last_seen_without_observation_growth(client):
+    payload = {
+        "host": "example.org",
+        "url": "https://example.org/favicon.ico",
+        "hashes": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "mmh3": "999",
+        },
+        "last_seen": "2026-01-01T00:00:00+00:00",
+        "seen_at": "2026-01-01T00:00:00+00:00",
+    }
+
+    first = client.post(
+        "/api/v1/favicons",
+        json=payload,
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert first.status_code == 201
+    assert len(first.json["observations"]) == 1
+    assert first.json["last_seen"] == "2026-01-01T00:00:00+00:00"
+
+    second_payload = payload | {
+        "last_seen": "2026-01-02T00:00:00+00:00",
+        "seen_at": "2026-01-02T00:00:00+00:00",
+    }
+    second = client.post(
+        "/api/v1/favicons",
+        json=second_payload,
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert second.status_code == 201
+    assert len(second.json["observations"]) == 1
+    assert second.json["last_seen"] == "2026-01-02T00:00:00+00:00"
+
+
 def test_openapi_and_swagger_docs(client):
     spec = client.get("/api/v1/openapi.json")
     assert spec.status_code == 200
