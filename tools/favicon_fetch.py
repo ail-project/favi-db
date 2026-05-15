@@ -139,21 +139,25 @@ def build_payload(
     target_ip_info = resolve_host_ips(parsed_target.hostname)
     icon_ip_info = resolve_host_ips(parsed_icon.hostname)
 
+    metadata = {
+        "size": len(content),
+        "content_type": favicon_response.headers.get("content-type"),
+        "http_status": favicon_response.status_code,
+        "favicon_host": parsed_icon.hostname,
+        "html_title": html_title,
+        "host_ipv4": target_ip_info["ipv4"],
+        "host_ipv6": target_ip_info["ipv6"],
+    }
+
+    if parsed_icon.hostname != parsed_target.hostname:
+        metadata["favicon_host_ipv4"] = icon_ip_info["ipv4"]
+        metadata["favicon_host_ipv6"] = icon_ip_info["ipv6"]
+
     return {
         "host": parsed_target.hostname,
         "url": favicon_response.url,
         "hashes": compute_hashes(content).as_dict(),
-        "metadata": {
-            "size": len(content),
-            "content_type": favicon_response.headers.get("content-type"),
-            "http_status": favicon_response.status_code,
-            "favicon_host": parsed_icon.hostname,
-            "html_title": html_title,
-            "host_ipv4": target_ip_info["ipv4"],
-            "host_ipv6": target_ip_info["ipv6"],
-            "favicon_host_ipv4": icon_ip_info["ipv4"],
-            "favicon_host_ipv6": icon_ip_info["ipv6"],
-        },
+        "metadata": metadata,
         "source": "favicon-fetch",
         "tags": tags,
     }
