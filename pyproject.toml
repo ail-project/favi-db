@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "favi-db"
 version = "0.1.0"
-description = "Flask API and companion tool to index favicon metadata and hashes in a Redis-compatible backend."
+description = "Flask API and companion tool to index favicon metadata and hashes in a Valkey-compatible backend."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-2-Clause" }
