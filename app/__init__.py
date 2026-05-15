@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect
 
 from app.api.routes import api_bp
 from app.config import Config
@@ -13,6 +13,33 @@ def create_app(config_object: type[Config] = Config) -> Flask:
 
     app.teardown_appcontext(close_redis)
     app.register_blueprint(api_bp, url_prefix="/api/v1")
+
+    @app.get("/")
+    def index():
+        return (
+            """<!doctype html>
+<html>
+  <head><meta charset=\"utf-8\" /><title>favi-db</title></head>
+  <body>
+    <h1>favi-db</h1>
+    <p>OpenAPI and Swagger documentation:</p>
+    <ul>
+      <li><a href=\"/docs\">Swagger UI</a></li>
+      <li><a href=\"/openapi.json\">OpenAPI JSON</a></li>
+    </ul>
+  </body>
+</html>""",
+            200,
+            {"Content-Type": "text/html; charset=utf-8"},
+        )
+
+    @app.get("/docs")
+    def swagger_docs_redirect():
+        return redirect("/api/v1/docs", code=302)
+
+    @app.get("/openapi.json")
+    def openapi_redirect():
+        return redirect("/api/v1/openapi.json", code=302)
 
     @app.get("/health")
     def health() -> tuple[dict[str, str], int]:

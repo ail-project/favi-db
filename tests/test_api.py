@@ -112,3 +112,15 @@ def test_openapi_and_swagger_docs(client):
     docs = client.get("/api/v1/docs")
     assert docs.status_code == 200
     assert "SwaggerUIBundle" in docs.get_data(as_text=True)
+
+    root = client.get("/")
+    assert root.status_code == 200
+    assert "Swagger UI" in root.get_data(as_text=True)
+
+    docs_redirect = client.get("/docs")
+    assert docs_redirect.status_code == 302
+    assert docs_redirect.headers["Location"].endswith("/api/v1/docs")
+
+    openapi_redirect = client.get("/openapi.json")
+    assert openapi_redirect.status_code == 302
+    assert openapi_redirect.headers["Location"].endswith("/api/v1/openapi.json")
