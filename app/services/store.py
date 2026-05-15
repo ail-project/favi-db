@@ -61,7 +61,7 @@ def canonical_algo(algo: str) -> str:
 
 
 class FaviconStore:
-    """Redis-backed store for favicon hash records and search indexes."""
+    """Valkey-compatible store for favicon hash records and search indexes."""
 
     def __init__(self, redis: Redis):
         self.redis = redis

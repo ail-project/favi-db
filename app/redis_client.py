@@ -5,10 +5,10 @@ from redis import Redis
 
 
 def get_redis() -> Redis:
-    """Return a request-scoped Redis client.
+    """Return a request-scoped backend client.
 
-    The URL can point to Redis, Valkey, DragonflyDB, or another Redis protocol
-    compatible service.
+    The URL can point to Valkey, Kvrocks, Redis, DragonflyDB, or another
+    Redis protocol compatible service.
     """
 
     if "redis" not in g:

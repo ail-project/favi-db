@@ -1,12 +1,12 @@
 # favi-db - a favicon-registry
 
-A small Flask service that stores favicon metadata and hash values in a Redis-compatible backend.
+A small Flask service that stores favicon metadata and hash values in a Valkey-compatible backend (also works with Redis and Kvrocks).
 
 The project is intentionally structured as a basis for a larger system:
 
 - no original favicon file is persisted;
 - hash-centric storage keyed by `sha256`;
-- Redis set indexes for hash values, hosts, URLs, and tags;
+- set-based indexes for hash values, hosts, URLs, and tags;
 - MurmurHash3 favicon hash support using the Shodan-style base64 convention;
 - a companion CLI that discovers favicons, computes hashes locally, and submits metadata via the API.
 
@@ -16,9 +16,9 @@ The project is intentionally structured as a basis for a larger system:
 app/
   __init__.py             Flask application factory
   api/routes.py           HTTP API
-  redis_client.py         request-scoped Redis client
+  redis_client.py         request-scoped backend client
   services/hashing.py     favicon hash calculation
-  services/store.py       Redis storage and indexes
+  services/store.py       backend storage and indexes
 tools/favicon_fetch.py    companion discovery/submission CLI
 tests/                    pytest tests
 ```
@@ -30,10 +30,12 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -r requirements-dev.txt
 
-# Start Redis-compatible backend
-redis-server
+# Start Valkey-compatible backend (Valkey, Kvrocks, Redis, DragonflyDB)
+valkey-server
 
 export REDIS_URL=redis://localhost:6379/0
+# optional alias (takes precedence when set)
+# export VALKEY_URL=redis://localhost:6379/0
 export API_TOKEN=change-me
 flask --app app.wsgi:app run --debug
 ```
@@ -129,7 +131,7 @@ python -m tools.favicon_fetch https://example.org \
   --token change-me
 ```
 
-## Redis data model
+## Valkey/Kvrocks data model
 
 Canonical record:
 

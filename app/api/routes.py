@@ -37,7 +37,7 @@ def store() -> FaviconStore:
 def api_health():
     redis = get_redis()
     redis.ping()
-    return jsonify({"status": "ok", "backend": "redis-compatible"})
+    return jsonify({"status": "ok", "backend": "valkey-compatible"})
 
 
 @api_bp.get("/openapi.json")
