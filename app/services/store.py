@@ -1,10 +1,26 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
+
+
+def normalize_ip(ip: str) -> str:
+    candidate = ip.strip()
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError as exc:
+        raise ValueError("ip must be a valid IPv4 or IPv6 address") from exc
+
+
+def extract_ip(host: str) -> str | None:
+    try:
+        return str(ipaddress.ip_address(host))
+    except ValueError:
+        return None
 
 from redis import Redis
 
@@ -93,6 +109,10 @@ class FaviconStore:
         pipe.sadd(f"favicon:{sha256}:hosts", host)
         pipe.sadd(f"favicon:{sha256}:urls", url)
         pipe.sadd(f"idx:host:{host}", sha256)
+
+        if host_ip := extract_ip(host):
+            pipe.sadd(f"favicon:{sha256}:ips", host_ip)
+            pipe.sadd(f"idx:ip:{host_ip}", sha256)
         pipe.sadd(f"idx:url:{url_key(url)}", sha256)
         pipe.set(f"url:{url_key(url)}", url)
         pipe.lpush(f"favicon:{sha256}:observations", json.dumps(observation, sort_keys=True))
@@ -119,6 +139,7 @@ class FaviconStore:
         record["hosts"] = sorted(self.redis.smembers(f"favicon:{sha256}:hosts"))
         record["urls"] = sorted(self.redis.smembers(f"favicon:{sha256}:urls"))
         record["tags"] = sorted(self.redis.smembers(f"favicon:{sha256}:tags"))
+        record["ips"] = sorted(self.redis.smembers(f"favicon:{sha256}:ips"))
         observations = self.redis.lrange(f"favicon:{sha256}:observations", 0, 99)
         record["observations"] = [json.loads(item) for item in observations]
         return record
@@ -131,6 +152,11 @@ class FaviconStore:
     def search_by_host(self, host: str) -> list[dict[str, Any]]:
         normalized = normalize_host(host, None)
         ids = sorted(self.redis.smembers(f"idx:host:{normalized}"))
+        return [record for sha in ids if (record := self.get(sha))]
+
+    def search_by_ip(self, ip: str) -> list[dict[str, Any]]:
+        normalized = normalize_ip(ip)
+        ids = sorted(self.redis.smembers(f"idx:ip:{normalized}"))
         return [record for sha in ids if (record := self.get(sha))]
 
     def search_by_tag(self, tag: str) -> list[dict[str, Any]]:
