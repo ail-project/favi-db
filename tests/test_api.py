@@ -64,3 +64,14 @@ def test_add_and_search_favicon(client):
 def test_write_requires_token(client):
     response = client.post("/api/v1/favicons", json={})
     assert response.status_code == 401
+
+
+def test_openapi_and_swagger_docs(client):
+    spec = client.get("/api/v1/openapi.json")
+    assert spec.status_code == 200
+    assert spec.json["openapi"].startswith("3.")
+    assert "/favicons" in spec.json["paths"]
+
+    docs = client.get("/api/v1/docs")
+    assert docs.status_code == 200
+    assert "SwaggerUIBundle" in docs.get_data(as_text=True)

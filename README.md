@@ -40,6 +40,14 @@ flask --app app.wsgi:app run --debug
 
 ## API
 
+Full endpoint reference: [`docs/API.md`](docs/API.md).
+
+OpenAPI/Swagger:
+
+- OpenAPI JSON: `GET /api/v1/openapi.json`
+- Swagger UI: `GET /api/v1/docs`
+
+
 ### Health
 
 ```bash

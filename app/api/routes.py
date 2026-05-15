@@ -3,11 +3,12 @@ from __future__ import annotations
 from functools import wraps
 from typing import Any, Callable
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from app.redis_client import get_redis
 from app.services.hashing import compute_hashes_from_base64
 from app.services.store import FaviconStore
+from app.api.openapi import build_openapi_spec
 
 api_bp = Blueprint("api", __name__)
 
@@ -37,6 +38,35 @@ def api_health():
     redis = get_redis()
     redis.ping()
     return jsonify({"status": "ok", "backend": "redis-compatible"})
+
+
+@api_bp.get("/openapi.json")
+def openapi_spec():
+    return jsonify(build_openapi_spec())
+
+
+@api_bp.get("/docs")
+def swagger_ui():
+    html = """<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>favi-db API docs</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      window.ui = SwaggerUIBundle({
+        url: '/api/v1/openapi.json',
+        dom_id: '#swagger-ui'
+      });
+    </script>
+  </body>
+</html>
+"""
+    return Response(html, mimetype="text/html")
 
 
 @api_bp.post("/favicons")
