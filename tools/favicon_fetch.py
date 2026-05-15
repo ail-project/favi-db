@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
+import socket
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -11,6 +13,36 @@ import requests
 from bs4 import BeautifulSoup
 
 from app.services.hashing import compute_hashes
+
+
+
+def resolve_host_ips(host: str | None) -> dict[str, list[str]]:
+    if not host:
+        return {"ipv4": [], "ipv6": []}
+
+    ipv4: set[str] = set()
+    ipv6: set[str] = set()
+
+    try:
+        literal = ipaddress.ip_address(host)
+        if literal.version == 4:
+            ipv4.add(str(literal))
+        else:
+            ipv6.add(str(literal))
+    except ValueError:
+        try:
+            infos = socket.getaddrinfo(host, None)
+        except socket.gaierror:
+            infos = []
+        for family, *_rest in infos:
+            sockaddr = _rest[-1]
+            addr = sockaddr[0]
+            if family == socket.AF_INET:
+                ipv4.add(addr)
+            elif family == socket.AF_INET6:
+                ipv6.add(addr)
+
+    return {"ipv4": sorted(ipv4), "ipv6": sorted(ipv6)}
 
 DEFAULT_PATHS = [
     "/favicon.ico",
@@ -104,6 +136,8 @@ def build_payload(
     parsed_target = urlparse(absolute_base(target))
     parsed_icon = urlparse(favicon_response.url)
     content = favicon_response.content
+    target_ip_info = resolve_host_ips(parsed_target.hostname)
+    icon_ip_info = resolve_host_ips(parsed_icon.hostname)
 
     return {
         "host": parsed_target.hostname,
@@ -115,6 +149,10 @@ def build_payload(
             "http_status": favicon_response.status_code,
             "favicon_host": parsed_icon.hostname,
             "html_title": html_title,
+            "host_ipv4": target_ip_info["ipv4"],
+            "host_ipv6": target_ip_info["ipv6"],
+            "favicon_host_ipv4": icon_ip_info["ipv4"],
+            "favicon_host_ipv6": icon_ip_info["ipv6"],
         },
         "source": "favicon-fetch",
         "tags": tags,

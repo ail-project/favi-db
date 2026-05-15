@@ -100,6 +100,7 @@ def search():
     algo = request.args.get("algo")
     value = request.args.get("value") or request.args.get("hash")
     host = request.args.get("host")
+    ip = request.args.get("ip")
     tag = request.args.get("tag")
 
     try:
@@ -107,13 +108,15 @@ def search():
             records = store().search_by_hash(algo, value)
         elif host:
             records = store().search_by_host(host)
+        elif ip:
+            records = store().search_by_ip(ip)
         elif tag:
             records = store().search_by_tag(tag)
         else:
             return jsonify(
                 {
                     "error": "validation_error",
-                    "message": "use ?algo=mmh3&value=... or ?host=... or ?tag=...",
+                    "message": "use ?algo=mmh3&value=... or ?host=... or ?ip=... or ?tag=...",
                 }
             ), 400
     except ValueError as exc:

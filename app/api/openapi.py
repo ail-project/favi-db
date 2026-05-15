@@ -113,12 +113,13 @@ def build_openapi_spec() -> dict:
             "/search": {
                 "get": {
                     "summary": "Search favicon records",
-                    "description": "Use one of: algo+value, host, or tag.",
+                    "description": "Use one of: algo+value, host, ip, or tag.",
                     "parameters": [
                         {"name": "algo", "in": "query", "schema": {"type": "string"}},
                         {"name": "value", "in": "query", "schema": {"type": "string"}},
                         {"name": "hash", "in": "query", "schema": {"type": "string"}},
                         {"name": "host", "in": "query", "schema": {"type": "string"}},
+                        {"name": "ip", "in": "query", "schema": {"type": "string"}},
                         {"name": "tag", "in": "query", "schema": {"type": "string"}},
                     ],
                     "responses": {"200": {"description": "Search results"}, "400": {"description": "Invalid query"}},
