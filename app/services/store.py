@@ -154,24 +154,27 @@ class FaviconStore:
         record["observations"] = [json.loads(item) for item in observations]
         return record
 
-    def search_by_hash(self, algo: str, value: str) -> list[dict[str, Any]]:
+
+
+    def _search_index_paginated(self, index_key: str, *, offset: int, limit: int) -> tuple[int, list[dict[str, Any]]]:
+        total = int(self.redis.scard(index_key))
+        sha256_ids = self.redis.sort(index_key, start=offset, num=limit, alpha=True)
+        items = [record for sha in sha256_ids if (record := self.get(sha))]
+        return total, items
+    def search_by_hash(self, algo: str, value: str, *, offset: int, limit: int) -> tuple[int, list[dict[str, Any]]]:
         algo = canonical_algo(algo)
-        ids = sorted(self.redis.smembers(f"idx:hash:{algo}:{value}"))
-        return [record for sha in ids if (record := self.get(sha))]
+        return self._search_index_paginated(f"idx:hash:{algo}:{value}", offset=offset, limit=limit)
 
-    def search_by_host(self, host: str) -> list[dict[str, Any]]:
+    def search_by_host(self, host: str, *, offset: int, limit: int) -> tuple[int, list[dict[str, Any]]]:
         normalized = normalize_host(host, None)
-        ids = sorted(self.redis.smembers(f"idx:host:{normalized}"))
-        return [record for sha in ids if (record := self.get(sha))]
+        return self._search_index_paginated(f"idx:host:{normalized}", offset=offset, limit=limit)
 
-    def search_by_ip(self, ip: str) -> list[dict[str, Any]]:
+    def search_by_ip(self, ip: str, *, offset: int, limit: int) -> tuple[int, list[dict[str, Any]]]:
         normalized = normalize_ip(ip)
-        ids = sorted(self.redis.smembers(f"idx:ip:{normalized}"))
-        return [record for sha in ids if (record := self.get(sha))]
+        return self._search_index_paginated(f"idx:ip:{normalized}", offset=offset, limit=limit)
 
-    def search_by_tag(self, tag: str) -> list[dict[str, Any]]:
-        ids = sorted(self.redis.smembers(f"idx:tag:{tag}"))
-        return [record for sha in ids if (record := self.get(sha))]
+    def search_by_tag(self, tag: str, *, offset: int, limit: int) -> tuple[int, list[dict[str, Any]]]:
+        return self._search_index_paginated(f"idx:tag:{tag}", offset=offset, limit=limit)
 
     def stats(self) -> dict[str, int]:
         return {"favicons": int(self.redis.scard("favicons"))}

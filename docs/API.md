@@ -59,7 +59,7 @@ curl http://127.0.0.1:5000/api/v1/favicons/<sha256>
 ```
 
 ### `GET /search`
-Search records by one selector:
+Search records by one selector, with pagination support (`limit` and `offset`):
 
 - `?algo=<algo>&value=<hash>` (or `hash=` alias)
 - `?host=<hostname>`
@@ -70,7 +70,21 @@ curl 'http://127.0.0.1:5000/api/v1/search?algo=mmh3&value=-123456789'
 curl 'http://127.0.0.1:5000/api/v1/search?algo=murmur3&value=-123456789'
 curl 'http://127.0.0.1:5000/api/v1/search?host=example.org'
 curl 'http://127.0.0.1:5000/api/v1/search?tag=seed'
+curl 'http://127.0.0.1:5000/api/v1/search?tag=seed&limit=25&offset=50'
 ```
+
+Pagination fields in search responses:
+
+- `count`: number of items in this page
+- `total`: total number of matching records
+- `limit`: requested page size
+- `offset`: requested offset
+- `has_more`: `true` if more records remain after this page
+
+Validation rules:
+
+- `limit` must be between `1` and `500`
+- `offset` must be `0` or greater
 
 ### `GET /stats`
 Returns backend aggregate counters and index cardinality summaries.
