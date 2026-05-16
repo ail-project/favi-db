@@ -159,3 +159,34 @@ def test_openapi_and_swagger_docs(client):
     openapi_redirect = client.get("/openapi.json")
     assert openapi_redirect.status_code == 302
     assert openapi_redirect.headers["Location"].endswith("/api/v1/openapi.json")
+
+
+def test_search_pagination_and_validation(client):
+    for i in range(3):
+        payload = {
+            "host": "example.org",
+            "url": f"https://example.org/favicon-{i}.ico",
+            "hashes": {
+                "sha256": f"{i:064x}",
+                "mmh3": "777",
+            },
+            "tags": ["bulk"],
+        }
+        response = client.post(
+            "/api/v1/favicons",
+            json=payload,
+            headers={"Authorization": "Bearer test-token"},
+        )
+        assert response.status_code == 201
+
+    paged = client.get("/api/v1/search?tag=bulk&limit=2&offset=1")
+    assert paged.status_code == 200
+    assert paged.json["count"] == 2
+    assert paged.json["total"] == 3
+    assert paged.json["limit"] == 2
+    assert paged.json["offset"] == 1
+    assert paged.json["has_more"] is False
+
+    bad_limit = client.get("/api/v1/search?tag=bulk&limit=0")
+    assert bad_limit.status_code == 400
+    assert bad_limit.json["error"] == "validation_error"

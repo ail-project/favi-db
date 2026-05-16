@@ -6,7 +6,7 @@ def build_openapi_spec() -> dict:
         "openapi": "3.0.3",
         "info": {
             "title": "favi-db API",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "description": "API for storing and searching favicon hashes and metadata.",
         },
         "servers": [{"url": "/api/v1"}],
@@ -121,8 +121,10 @@ def build_openapi_spec() -> dict:
                         {"name": "host", "in": "query", "schema": {"type": "string"}},
                         {"name": "ip", "in": "query", "schema": {"type": "string"}},
                         {"name": "tag", "in": "query", "schema": {"type": "string"}},
+                        {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 500, "default": 50}, "description": "Page size (1-500)."},
+                        {"name": "offset", "in": "query", "schema": {"type": "integer", "minimum": 0, "default": 0}, "description": "Number of matching records to skip."},
                     ],
-                    "responses": {"200": {"description": "Search results"}, "400": {"description": "Invalid query"}},
+                    "responses": {"200": {"description": "Paginated search results"}, "400": {"description": "Invalid query"}},
                 }
             },
             "/stats": {

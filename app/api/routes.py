@@ -33,6 +33,24 @@ def store() -> FaviconStore:
     return FaviconStore(get_redis())
 
 
+def parse_pagination_args() -> tuple[int, int] | tuple[None, None]:
+    raw_limit = request.args.get("limit", "50")
+    raw_offset = request.args.get("offset", "0")
+
+    try:
+        limit = int(raw_limit)
+        offset = int(raw_offset)
+    except ValueError:
+        return None, None
+
+    if limit < 1 or limit > 500:
+        return None, None
+    if offset < 0:
+        return None, None
+
+    return limit, offset
+
+
 @api_bp.get("/health")
 def api_health():
     redis = get_redis()
@@ -103,15 +121,24 @@ def search():
     ip = request.args.get("ip")
     tag = request.args.get("tag")
 
+    limit, offset = parse_pagination_args()
+    if limit is None:
+        return jsonify(
+            {
+                "error": "validation_error",
+                "message": "limit must be an integer between 1 and 500, and offset must be a non-negative integer",
+            }
+        ), 400
+
     try:
         if algo and value:
-            records = store().search_by_hash(algo, value)
+            total, items = store().search_by_hash(algo, value, offset=offset, limit=limit)
         elif host:
-            records = store().search_by_host(host)
+            total, items = store().search_by_host(host, offset=offset, limit=limit)
         elif ip:
-            records = store().search_by_ip(ip)
+            total, items = store().search_by_ip(ip, offset=offset, limit=limit)
         elif tag:
-            records = store().search_by_tag(tag)
+            total, items = store().search_by_tag(tag, offset=offset, limit=limit)
         else:
             return jsonify(
                 {
@@ -122,7 +149,16 @@ def search():
     except ValueError as exc:
         return jsonify({"error": "validation_error", "message": str(exc)}), 400
 
-    return jsonify({"count": len(records), "items": records})
+    return jsonify(
+        {
+            "count": len(items),
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + len(items) < total,
+            "items": items,
+        }
+    )
 
 
 @api_bp.get("/stats")
